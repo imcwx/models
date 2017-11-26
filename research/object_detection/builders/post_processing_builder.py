@@ -91,7 +91,13 @@ def _build_non_max_suppressor(nms_config):
 def _score_converter_fn_with_logit_scale(tf_score_converter_fn, logit_scale):
   """Create a function to scale logits then apply a Tensorflow function."""
   def score_converter_fn(logits):
-    scaled_logits = tf.divide(logits, logit_scale, name='scale_logits')
+    cr = logit_scale
+    cr = tf.constant(cr,tf.float32)
+    print "keyong:logit_scale", logit_scale
+    print "keyong:cr", cr
+    scaled_logits = tf.divide(logits, cr, name='scale_logits')
+
+    #scaled_logits = tf.divide(logits, logit_scale, name='scale_logits')
     return tf_score_converter_fn(scaled_logits, name='convert_scores')
   score_converter_fn.__name__ = '%s_with_logit_scale' % (
       tf_score_converter_fn.__name__)
