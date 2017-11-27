@@ -41,6 +41,7 @@ from object_detection.utils import label_map_util
 
 flags = tf.app.flags
 flags.DEFINE_string('data_dir', '', 'Root directory to raw PASCAL VOC dataset.')
+flags.DEFINE_string('check_bbs', False, 'verify if the boundingbox is out of range')
 #flags.DEFINE_string('set', 'train', 'Convert training set, validation set or '
 #                    'merged set.')
 #flags.DEFINE_string('annotations_dir', 'Annotations',
@@ -77,6 +78,20 @@ def json_to_tf_example(json_data,
     Raises:
       ValueError: if the image pointed to by data['filename'] is not a valid JPEG
     """
+    width  = int(json_data.get("image_width"))
+    height = int(json_data.get("image_height"))
+
+    check_pic_orientation=True
+    if check_pic_orientation:
+        orig_filename = json_data.get("filename")
+        orig_full_path = os.path.join(FLAGS.data_dir,"photos", orig_filename)
+
+        with tf.gfile.GFile(orig_full_path, 'rb') as fid:
+            encoded_jpg = fid.read()
+        encoded_jpg_io = io.BytesIO(encoded_jpg)
+        image = PIL.Image.open(encoded_jpg_io)
+        width,height=image.size;
+
     filename = json_data.get("filename")+".scaled.jpg"
     #img_path = os.path.join(FLAGS.data_dir,"photos", filename)
     full_path = os.path.join(FLAGS.data_dir,"photos", filename)
@@ -99,8 +114,6 @@ def json_to_tf_example(json_data,
         raise ValueError('Image format not JPEG')
     key = hashlib.sha256(encoded_jpg).hexdigest()
 
-    width  = int(json_data.get("image_width"))
-    height = int(json_data.get("image_height"))
 
     xmin = []
     ymin = []
@@ -111,10 +124,9 @@ def json_to_tf_example(json_data,
     truncated = []
     poses = []
     difficult_obj = []
+
     for obj in json_data.get("bndboxes"):
-
         difficult_obj.append(0)
-
         xmin.append(float(obj.get("x")) / width)
         ymin.append(float(obj.get("y")) / height)
         xmax.append(float(obj.get("x")+obj.get("w")) / width)
@@ -148,6 +160,67 @@ def json_to_tf_example(json_data,
     }))
     return example
 
+def check_bndboxes(json_data):
+    """Convert XML derived dict to tf.Example proto.
+
+    Notice that this function normalizes the bounding box coordinates provided
+    by the raw data.
+
+    Args:
+      data: dict holding PASCAL XML fields for a single image (obtained by
+        running dataset_util.recursive_parse_xml_to_dict)
+      dataset_directory: Path to root directory holding PASCAL dataset
+      label_map_dict: A map from string label names to integers ids.
+      ignore_difficult_instances: Whether to skip difficult instances in the
+        dataset  (default: False).
+      image_subdirectory: String specifying subdirectory within the
+        PASCAL dataset directory holding the actual image data.
+
+    Returns:
+      example: The converted tf.Example.
+
+    Raises:
+      ValueError: if the image pointed to by data['filename'] is not a valid JPEG
+    """
+    filename = json_data.get("filename")
+    full_path = os.path.join(FLAGS.data_dir,"photos", filename)
+
+
+    #full_path = os.path.join(dataset_directory, img_path)
+    with tf.gfile.GFile(full_path, 'rb') as fid:
+        encoded_jpg = fid.read()
+    encoded_jpg_io = io.BytesIO(encoded_jpg)
+    image = PIL.Image.open(encoded_jpg_io)
+    width,height=image.size;
+    print ("width="+str(width))
+    #width  = int(json_data.get("image_width"))
+    #height = int(json_data.get("image_height"))
+    for obj in json_data.get("bndboxes"):
+        xma=float((obj.get("x")+obj.get("w")) / width)
+        yma=float((obj.get("y")+obj.get("h")) / height)
+        if xma>1.0 or yma >1.0:
+            error_str="Wrong bounding box in "+filename + "(" +str(obj.get("x"))+","+str(obj.get("y"))+","+str(obj.get("w"))+","+str(obj.get("h"))+')'
+            error_str = error_str + "image_width="+str(width) + ",image_height=" +str(height)
+            print(error_str)
+            raise  ValueError(error_str)
+
+def check_bndboxes_dir():
+    data_dir = FLAGS.data_dir
+    photos_dir= os.path.join(data_dir, "photos")
+    annotations_dir = os.path.join(data_dir, "photos","Annotations")
+    examples_list= [f for f in os.listdir(photos_dir) if os.path.isfile(os.path.join(photos_dir, f))]
+    examples_list= [f for f in os.listdir(annotations_dir) if os.path.isfile(os.path.join(annotations_dir, f))]
+    for idx, example in enumerate(examples_list):
+        if idx % 100 == 0:
+            logging.info('On image %d of %d', idx, len(examples_list))
+        #path = os.path.join(annotations_dir, example + '.json')
+        path = os.path.join(annotations_dir, example)
+        with tf.gfile.GFile(path, 'r') as fid:
+            json_str = fid.read()
+        json_data=json.loads(json_str)
+        tf_example = check_bndboxes(json_data)
+
+    print("no error found")
 
 def to_tfrecord():
     data_dir = FLAGS.data_dir
@@ -157,15 +230,16 @@ def to_tfrecord():
 
     photos_dir= os.path.join(data_dir, "photos")
     annotations_dir = os.path.join(data_dir, "photos","Annotations")
-    examples_list= [f for f in os.listdir(photos_dir) if os.path.isfile(os.path.join(photos_dir, f))]
+    examples_list= [f for f in os.listdir(annotations_dir) if os.path.isfile(os.path.join(annotations_dir, f))]
     for idx, example in enumerate(examples_list):
         if idx % 100 == 0:
             logging.info('On image %d of %d', idx, len(examples_list))
-        path = os.path.join(annotations_dir, example + '.json')
+        #path = os.path.join(annotations_dir, example + '.json')
+        path = os.path.join(annotations_dir, example)
         with tf.gfile.GFile(path, 'r') as fid:
             json_str = fid.read()
         json_data=json.loads(json_str)
-
+        check_bndboxes(json_data)
         tf_example = json_to_tf_example(json_data, FLAGS.data_dir, label_map_dict )
         writer.write(tf_example.SerializeToString())
 
@@ -194,7 +268,10 @@ def genereate_label_pbtxt():
 
 
 def main(_):
-    genereate_label_pbtxt()
-    to_tfrecord()
+    if FLAGS.check_bbs:
+        check_bndboxes_dir()
+    else:
+        genereate_label_pbtxt()
+        to_tfrecord()
 if __name__ == '__main__':
     tf.app.run()
