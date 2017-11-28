@@ -34,6 +34,7 @@ import json
 from lxml import etree
 import PIL.Image
 import tensorflow as tf
+import numpy
 
 from object_detection.utils import dataset_util
 from object_detection.utils import label_map_util
@@ -81,39 +82,39 @@ def json_to_tf_example(json_data,
     width  = int(json_data.get("image_width"))
     height = int(json_data.get("image_height"))
 
-    check_pic_orientation=True
-    if check_pic_orientation:
-        orig_filename = json_data.get("filename")
-        orig_full_path = os.path.join(FLAGS.data_dir,"photos", orig_filename)
+    filename=orig_filename = json_data.get("filename")
+    full_path=orig_full_path = os.path.join(FLAGS.data_dir,"photos", orig_filename)
 
-        with tf.gfile.GFile(orig_full_path, 'rb') as fid:
-            encoded_jpg = fid.read()
-        encoded_jpg_io = io.BytesIO(encoded_jpg)
-        image = PIL.Image.open(encoded_jpg_io)
-        width,height=image.size;
+    with tf.gfile.GFile(orig_full_path, 'rb') as fid:
+        encoded_jpg = fid.read()
 
-    filename = json_data.get("filename")+".scaled.jpg"
-    #img_path = os.path.join(FLAGS.data_dir,"photos", filename)
-    full_path = os.path.join(FLAGS.data_dir,"photos", filename)
-    if not os.path.exists(full_path):
-        #raise ValueError('Please scale image :convert abc.jpg -resize 756x1008 sss.jpg')
-        orig_filename = json_data.get("filename")
-        orig_full_path = os.path.join(FLAGS.data_dir,"photos", orig_filename)
-        #image = PIL.Image.open(orig_full_path)
-        ##image.resize((756,1008), resample=PIL.Image.BILINEAR).save(full_path)
-        #image.resize((756,1008), resample=PIL.Image.NEAREST).save(full_path)
-        os.system("convert "+orig_full_path+" -resize 756x1008 "+full_path)
+    encoded_jpg_io = io.BytesIO(encoded_jpg)
+    image = PIL.Image.open(encoded_jpg_io)
+    width,height=image.size
+
+    # filename = json_data.get("filename")+".scaled.jpg"
+    # #img_path = os.path.join(FLAGS.data_dir,"photos", filename)
+    # full_path = os.path.join(FLAGS.data_dir,"photos", filename)
+    # if not os.path.exists(full_path):
+    #     #raise ValueError('Please scale image :convert abc.jpg -resize 756x1008 sss.jpg')
+    #     orig_filename = json_data.get("filename")
+    #     orig_full_path = os.path.join(FLAGS.data_dir,"photos", orig_filename)
+    #     #image = PIL.Image.open(orig_full_path)
+    #     ##image.resize((756,1008), resample=PIL.Image.BILINEAR).save(full_path)
+    #     #image.resize((756,1008), resample=PIL.Image.NEAREST).save(full_path)
+    #     os.system("convert "+orig_full_path+" -resize 756x1008 "+full_path)
 
 
     #full_path = os.path.join(dataset_directory, img_path)
-    with tf.gfile.GFile(full_path, 'rb') as fid:
-        encoded_jpg = fid.read()
-    encoded_jpg_io = io.BytesIO(encoded_jpg)
-    image = PIL.Image.open(encoded_jpg_io)
+    #with tf.gfile.GFile(full_path, 'rb') as fid:
+    #    encoded_jpg = fid.read()
+    #encoded_jpg_io = io.BytesIO(encoded_jpg)
+    #image = PIL.Image.open(encoded_jpg_io)
+
     if image.format != 'JPEG':
         raise ValueError('Image format not JPEG')
     key = hashlib.sha256(encoded_jpg).hexdigest()
-
+    width,height=image.size;
 
     xmin = []
     ymin = []
@@ -129,8 +130,8 @@ def json_to_tf_example(json_data,
         difficult_obj.append(0)
         xmin.append(float(obj.get("x")) / width)
         ymin.append(float(obj.get("y")) / height)
-        xmax.append(float(obj.get("x")+obj.get("w")) / width)
-        ymax.append(float(obj.get("y")+obj.get("h")) / height)
+        xmax.append(numpy.clip(float(obj.get("x")+obj.get("w")) / width,0,1))
+        ymax.append(numpy.clip(float(obj.get("y")+obj.get("h")) / height,0,1))
         classes_text.append(obj.get("id").encode('utf8'))
         classes.append(label_map_dict[obj.get("id")])
         truncated.append(int(0))
@@ -191,14 +192,14 @@ def check_bndboxes(json_data):
         encoded_jpg = fid.read()
     encoded_jpg_io = io.BytesIO(encoded_jpg)
     image = PIL.Image.open(encoded_jpg_io)
-    width,height=image.size;
-    print ("width="+str(width))
+    width,height=image.size
+    #print ("width="+str(width))
     #width  = int(json_data.get("image_width"))
     #height = int(json_data.get("image_height"))
     for obj in json_data.get("bndboxes"):
         xma=float((obj.get("x")+obj.get("w")) / width)
         yma=float((obj.get("y")+obj.get("h")) / height)
-        if xma>1.0 or yma >1.0:
+        if xma>1.01 or yma >1.01:
             error_str="Wrong bounding box in "+filename + "(" +str(obj.get("x"))+","+str(obj.get("y"))+","+str(obj.get("w"))+","+str(obj.get("h"))+')'
             error_str = error_str + "image_width="+str(width) + ",image_height=" +str(height)
             print(error_str)
@@ -208,7 +209,7 @@ def check_bndboxes_dir():
     data_dir = FLAGS.data_dir
     photos_dir= os.path.join(data_dir, "photos")
     annotations_dir = os.path.join(data_dir, "photos","Annotations")
-    examples_list= [f for f in os.listdir(photos_dir) if os.path.isfile(os.path.join(photos_dir, f))]
+    #examples_list= [f for f in os.listdir(photos_dir) if os.path.isfile(os.path.join(photos_dir, f))]
     examples_list= [f for f in os.listdir(annotations_dir) if os.path.isfile(os.path.join(annotations_dir, f))]
     for idx, example in enumerate(examples_list):
         if idx % 100 == 0:
@@ -230,7 +231,10 @@ def to_tfrecord():
 
     photos_dir= os.path.join(data_dir, "photos")
     annotations_dir = os.path.join(data_dir, "photos","Annotations")
-    examples_list= [f for f in os.listdir(annotations_dir) if os.path.isfile(os.path.join(annotations_dir, f))]
+    #examples_list= [f for f in os.listdir(annotations_dir) if os.path.isfile(os.path.join(annotations_dir, f))]
+    examples_list= [f for f in os.listdir(annotations_dir)
+                      if f.find(".scaled.")==-1 and os.path.isfile(os.path.join(annotations_dir, f))
+                   ]
     for idx, example in enumerate(examples_list):
         if idx % 100 == 0:
             logging.info('On image %d of %d', idx, len(examples_list))
