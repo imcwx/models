@@ -46,10 +46,10 @@ def load_image_into_numpy_array(image):
 
 
 PATH_TO_TEST_IMAGES_DIR = 'test_images'
-TEST_IMAGE_PATHS = [ '/home/keyong/Downloads/splited_data/photos/1002_3428_IMG_5945_1_0.JPG' ]
+TEST_IMAGE_PATHS = [ '/home/keyong/Downloads/splited_data/photos/1002_3428_IMG_5944_1_0.JPG' ]
 
-# Size, in inches, of the output images.
-IMAGE_SIZE = (12, 8)
+# Size, in inches, of the output window.
+IMAGE_SIZE = (20, 12)
 
 with detection_graph.as_default():
   with tf.Session(graph=detection_graph) as sess:

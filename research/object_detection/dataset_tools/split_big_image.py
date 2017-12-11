@@ -44,9 +44,10 @@ def crop_image(x, y, w, h, row, col, scaled_img, to_dir, short_name, json_data):
     crop = "-crop "+str(w)+"x"+str(h)+"+" + str(x) + "+" + str(y)
     #print (crop)
     photo_dir = os.path.join(to_dir, "photos")
+
     cropped_image_name = short_name[0:-4] + "_" + str(row) + "_" + str(col) + ".JPG"
     photo_name = os.path.join(photo_dir, cropped_image_name)
-    command = "convert " + scaled_img + " " + crop + " " + photo_name
+    command = "convert '" + scaled_img + "' " + crop + " '" + photo_name+"'"
     os.system(command)
     avai_bbs=[]
     for box in json_data.get("bndboxes"):
@@ -116,11 +117,13 @@ def split_one_image(json_data, img_path, to_dir, short_name):
 
     if min_w < 45:
         error_str = "Wrong bounding box in " + img_path + ", the width of bbox is " + str(
-            min_w) + ", should be bigger than 80"
+            min_w) + ", should be bigger than 45"
         print(error_str)
         raise ValueError(error_str)
 
     scale = 45.0 / min_w
+    if scale>1.0:
+        scale=1.0
 
     with tf.gfile.GFile(img_path, 'rb') as fid:
         encoded_jpg = fid.read()
@@ -153,7 +156,7 @@ def split_one_image(json_data, img_path, to_dir, short_name):
     temp_img = os.path.join(to_dir, "photos", "tmp", short_name)
 
     slice_img = os.path.join(to_dir, "photos", short_name[0:-4])
-    os.system("convert " + orig_full_path + " -resize " + str(new_width) + "x" + str(new_height) + " " + temp_img)
+    os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img+"'")
     y = 0
     row = 0
 
@@ -215,6 +218,10 @@ def main(_):
         with tf.gfile.GFile(path, 'r') as fid:
             json_str = fid.read()
         json_data = json.loads(json_str)
+
+        bndboxes = json_data.get("bndboxes")
+        bndboxes=[box for box in bndboxes if box.get("w")>=45 ]
+        json_data["bndboxes"]=bndboxes
         split_one_image(json_data, img_path, FLAGS.to_dir, short_name)
         #1002_3428_IMG_5944_2_1if short_name == 'IMG_1303.JPG':
         # if short_name in ['1002_3428_IMG_5944.JPG',"1002_3428_IMG_5945.JPG"]:
