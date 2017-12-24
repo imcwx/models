@@ -10,11 +10,11 @@ flags = tf.app.flags
 #flags.DEFINE_string('list', 0, 'task id')
 #IMG_FILE="/home/keyong/Downloads/splited_data/photos/1002_3428_IMG_5945_1_0.JPG"
 #IMG_FILE="/home/keyong/Downloads/splited_data/photos/1002_3428_IMG_5944_1_0.JPG"
-IMG_FILE="/home/keyong/Documents/ssd/test_images/aaa.jpg"
+IMG_FILE="/home/keyong/Downloads/cig_splitted_no_30_31_32_33/photos/IMG_8713_1_1.JPG"
 #IMG_FILE="/home/keyong/Downloads/18001000W_1102/photos/1002_3428_IMG_5955.JPG"
-PB_FILE="/home/keyong/Documents/ssd/mypb_500.pb"
+PB_FILE="/home/keyong/Documents/ssd/pb_files/cig_no_3x/cig_no_3x.pb"
 #PB_FILE="/home/keyong/Documents/ssd/test.pb"
-LST_FILE="/home/keyong/documents/ssd/mypb_list.txt"
+LST_FILE="/home/keyong/documents/ssd/pb_files/cig_no_3x/cig_no_3x.txt"
 def create_simple_category_index():
     category={}
     for x in range(1, 200):
@@ -75,7 +75,7 @@ def main(_):
                                                         cat,
                                                         use_normalized_coordinates=True,
                                                         max_boxes_to_draw=100,
-                                                        min_score_thresh=0.001)
+                                                        min_score_thresh=0.2)
     vis_utils.save_image_array_as_png(array,"/home/keyong/Documents/ssd/result.png")
     # tf.logging.info('Running inference and writing output to {}'.format(
     #     FLAGS.output_tfrecord_path))
