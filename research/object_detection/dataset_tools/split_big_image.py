@@ -39,6 +39,27 @@ FLAGS = flags.FLAGS
 #             "strokeStyle":"#3399FF","fillStyle":"#00FF00"},
 #  ]}
 #
+def bbox_in_area(bbox,x,y,w,h):
+    bx=bbox.get("x")
+    by=bbox.get("y")
+    bw=bbox.get("w")
+    bh=bbox.get("h")
+    threshold=3/4
+    rx,ry,rx2,ry2= (max(bx,x), max(by,y), min(bx+bw,x+w) ,min(by+bh,y+h))
+    if rx2<=rx or ry2<=ry:
+        return None
+
+    if (rx2-rx) * (ry2 -ry) >= bw*bh* threshold:
+        new_box=copy.deepcopy(bbox)
+        new_box["x"]=rx
+        new_box["y"]=ry
+        new_box["w"]=rx2-rx
+        new_box["h"]=ry2-ry
+        return new_box
+
+    return None
+
+
 def crop_image(x, y, w, h, row, col, scaled_img, to_dir, short_name, json_data):
     #crop = "-crop 500x500+" + str(x) + "+" + str(y)
     crop = "-crop "+str(w)+"x"+str(h)+"+" + str(x) + "+" + str(y)
@@ -48,47 +69,51 @@ def crop_image(x, y, w, h, row, col, scaled_img, to_dir, short_name, json_data):
     cropped_image_name = short_name[0:-4] + "_" + str(row) + "_" + str(col) + ".JPG"
     photo_name = os.path.join(photo_dir, cropped_image_name)
     command = "convert '" + scaled_img + "' " + crop + " '" + photo_name+"'"
-    os.system(command)
+    if not os.path.exists(photo_name):
+        os.system(command)
     avai_bbs=[]
     for box in json_data.get("bndboxes"):
-        if box.get("x") >= x and box.get("x") + box.get("w") < x + w:
-            by=box["y"]
-            bh=box["h"]
-            if by >= y and by + bh <= y + h:
-                avai_bbs.append(copy.deepcopy(box))
-            elif by <y and by + bh > y:
-                #box is upper of crop area
-                overlap= by+bh -y
-                if overlap >= bh*2/3:
-                    new_box=copy.deepcopy(box)
-                    new_box["y"]=y
-                    new_box["h"]=bh+by-y
-                    avai_bbs.append(new_box)
-                pass
-            elif by < y+h and by + bh > y + h:
-                overlap= y + h - by
-                if overlap >= bh*2/3:
-                    new_box=copy.deepcopy(box)
-                    new_box["h"]=y+h-by
-                    avai_bbs.append(new_box)
-        elif box.get("y") >= y and box.get("y") + box.get("h") < y + h:
-            bx=box["x"]
-            bw=box["w"]
-
-            if bx < x and bx + bw > x:
-                overlap= bx+bw -x
-                if overlap >= bw*2/3:
-                    new_box=copy.deepcopy(box)
-                    new_box["x"]=x
-                    new_box["w"]=bx+bw-x
-                    avai_bbs.append(new_box)
-            elif bx < x+w and bx + bw > x + w:
-                overlap= x + w - bx
-                if overlap >= bw*2/3:
-                    new_box=copy.deepcopy(box)
-                    new_box["w"]= x + w -bx
-                    avai_bbs.append(new_box)
-        pass
+        new_box = bbox_in_area(box,x,y,w,h)
+        if new_box is not None:
+            avai_bbs.append(new_box)
+        # if box.get("x") >= x and box.get("x") + box.get("w") < x + w:
+        #     by=box["y"]
+        #     bh=box["h"]
+        #     if by >= y and by + bh <= y + h:
+        #         avai_bbs.append(copy.deepcopy(box))
+        #     elif by <y and by + bh > y:
+        #         #box is upper of crop area
+        #         overlap= by+bh -y
+        #         if overlap >= bh*threshold:
+        #             new_box=copy.deepcopy(box)
+        #             new_box["y"]=y
+        #             new_box["h"]=bh+by-y
+        #             avai_bbs.append(new_box)
+        #         pass
+        #     elif by < y+h and by + bh > y + h:
+        #         overlap= y + h - by
+        #         if overlap >= bh*threshold:
+        #             new_box=copy.deepcopy(box)
+        #             new_box["h"]=y+h-by
+        #             avai_bbs.append(new_box)
+        # elif box.get("y") >= y and box.get("y") + box.get("h") < y + h:
+        #     bx=box["x"]
+        #     bw=box["w"]
+        #
+        #     if bx < x and bx + bw > x:
+        #         overlap= bx+bw -x
+        #         if overlap >= bw*threshold:
+        #             new_box=copy.deepcopy(box)
+        #             new_box["x"]=x
+        #             new_box["w"]=bx+bw-x
+        #             avai_bbs.append(new_box)
+        #     elif bx < x+w and bx + bw > x + w:
+        #         overlap= x + w - bx
+        #         if overlap >= bw*threshold:
+        #             new_box=copy.deepcopy(box)
+        #             new_box["w"]= x + w -bx
+        #             avai_bbs.append(new_box)
+        #pass
 
     for box in avai_bbs:
         box["x"] = box["x"] - x
@@ -96,7 +121,7 @@ def crop_image(x, y, w, h, row, col, scaled_img, to_dir, short_name, json_data):
 
 
     with open(os.path.join(to_dir, "photos", "Annotations", cropped_image_name + ".json"),'w') as fp:
-        header = '{"version":"1.0.0","company":"18001000W","dataset":"photos","filename":"'
+        header = '{"version":"1.0.0","company":"idontknow","dataset":"photos","filename":"'
         header +=  cropped_image_name + '",' + """
   "image_width":500,"image_height":500,
   "bndboxes":
@@ -153,10 +178,15 @@ def split_one_image(json_data, img_path, to_dir, short_name):
 
     orig_full_path = img_path
     # short_name is the file name like "abc.JPG"
+    temp_img_rgb = os.path.join(to_dir, "photos", "tmp", short_name+"rgb.jpg")
     temp_img = os.path.join(to_dir, "photos", "tmp", short_name)
 
     slice_img = os.path.join(to_dir, "photos", short_name[0:-4])
-    os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img+"'")
+    if not os.path.exists(temp_img):
+        os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img_rgb+"'")
+        #to_bgr:convert 1.jpg  -separate +channel -swap 0,2  -combine 1_bgr.jpg
+        os.system("convert '" + temp_img_rgb + "' -separate +channel -swap 0,2 -combine '" + temp_img+"'")
+
     y = 0
     row = 0
 
@@ -221,7 +251,15 @@ def main(_):
 
         bndboxes = json_data.get("bndboxes")
         bndboxes=[box for box in bndboxes if box.get("w")>=45 ]
+        bndboxes=[box for box in bndboxes if box.get("id") !="unknown" ]
+        ooo=[box for box in bndboxes if box.get("id") in ["Amber","Silver","Blue","Green"] ]
+        for box in ooo:
+            box["id"]="Amber"
+
         json_data["bndboxes"]=bndboxes
+        bndboxes = json_data.get("bndboxes")
+        for box in bndboxes:
+            assert box["id"] not in ["Silver","Blue","Green","unknown"]
         split_one_image(json_data, img_path, FLAGS.to_dir, short_name)
         #1002_3428_IMG_5944_2_1if short_name == 'IMG_1303.JPG':
         # if short_name in ['1002_3428_IMG_5944.JPG',"1002_3428_IMG_5945.JPG"]:

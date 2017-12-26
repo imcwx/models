@@ -51,8 +51,7 @@ flags.DEFINE_string('check_bbs', False, 'verify if the boundingbox is out of ran
 flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
 flags.DEFINE_string('label_map_path', 'data/pascal_label_map.pbtxt',
                     'Path to label map proto')
-flags.DEFINE_boolean('ignore_difficult_instances', False, 'Whether to ignore '
-                                                          'difficult instances')
+flags.DEFINE_boolean('ignore_empty_images', False, 'will ignore images that has no bbox inside')
 FLAGS = flags.FLAGS
 
 def json_to_tf_example(json_data,
@@ -243,6 +242,10 @@ def to_tfrecord():
         with tf.gfile.GFile(path, 'r') as fid:
             json_str = fid.read()
         json_data=json.loads(json_str)
+        empty=len(json_data.get("bndboxes"))==0
+
+        if FLAGS.ignore_empty_images and empty:
+            continue
         check_bndboxes(json_data)
         tf_example = json_to_tf_example(json_data, FLAGS.data_dir, label_map_dict )
         writer.write(tf_example.SerializeToString())
