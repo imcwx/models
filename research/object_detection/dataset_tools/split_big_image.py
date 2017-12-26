@@ -44,7 +44,7 @@ def bbox_in_area(bbox,x,y,w,h):
     by=bbox.get("y")
     bw=bbox.get("w")
     bh=bbox.get("h")
-    threshold=3/4
+    threshold=0.8
     rx,ry,rx2,ry2= (max(bx,x), max(by,y), min(bx+bw,x+w) ,min(by+bh,y+h))
     if rx2<=rx or ry2<=ry:
         return None

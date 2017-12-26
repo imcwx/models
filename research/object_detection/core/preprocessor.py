@@ -1959,7 +1959,7 @@ def ssd_random_crop(image,
                     aspect_ratio_range=((0.5, 2.0),) * 7,
                     area_range=((0.1, 1.0),) * 7,
                     #overlap_thresh=(0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0),
-                    overlap_thresh=(0.0, 2.0/3, 0.7, 0.75, 0.8, 0.9, 1.0),
+                    overlap_thresh=(0.0, 0.7, 0.7, 0.75, 0.8, 0.9, 1.0),
                     random_coef=(0.15,) * 7,
                     seed=None):
   """Random crop preprocessing with default parameters as in SSD paper.
