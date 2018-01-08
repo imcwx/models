@@ -252,14 +252,16 @@ def main(_):
         bndboxes = json_data.get("bndboxes")
         bndboxes=[box for box in bndboxes if box.get("w")>=45 ]
         bndboxes=[box for box in bndboxes if box.get("id") !="unknown" ]
-        ooo=[box for box in bndboxes if box.get("id") in ["Amber","Silver","Blue","Green"] ]
-        for box in ooo:
-            box["id"]="Amber"
+        #ooo=[box for box in bndboxes if box.get("id") in ["Amber","Silver","Blue","Green"] ]
+        #for box in ooo:
+        #    box["id"]="Amber"
 
         json_data["bndboxes"]=bndboxes
-        bndboxes = json_data.get("bndboxes")
-        for box in bndboxes:
-            assert box["id"] not in ["Silver","Blue","Green","unknown"]
+        if len(bndboxes) <= 0:
+            continue
+        #bndboxes = json_data.get("bndboxes")
+        #for box in bndboxes:
+        #    assert box["id"] not in ["Silver","Blue","Green","unknown"]
         split_one_image(json_data, img_path, FLAGS.to_dir, short_name)
         #1002_3428_IMG_5944_2_1if short_name == 'IMG_1303.JPG':
         # if short_name in ['1002_3428_IMG_5944.JPG',"1002_3428_IMG_5945.JPG"]:
