@@ -178,14 +178,19 @@ def split_one_image(json_data, img_path, to_dir, short_name):
 
     orig_full_path = img_path
     # short_name is the file name like "abc.JPG"
+    bgr=False
+
     temp_img_rgb = os.path.join(to_dir, "photos", "tmp", short_name+"rgb.jpg")
     temp_img = os.path.join(to_dir, "photos", "tmp", short_name)
 
     slice_img = os.path.join(to_dir, "photos", short_name[0:-4])
     if not os.path.exists(temp_img):
-        os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img_rgb+"'")
-        #to_bgr:convert 1.jpg  -separate +channel -swap 0,2  -combine 1_bgr.jpg
-        os.system("convert '" + temp_img_rgb + "' -separate +channel -swap 0,2 -combine '" + temp_img+"'")
+        if bgr:
+            os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img_rgb+"'")
+            #to_bgr:convert 1.jpg  -separate +channel -swap 0,2  -combine 1_bgr.jpg
+            os.system("convert '" + temp_img_rgb + "' -separate +channel -swap 0,2 -combine '" + temp_img+"'")
+        else:
+            os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img+"'")
 
     y = 0
     row = 0
