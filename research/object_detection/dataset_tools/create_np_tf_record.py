@@ -196,6 +196,16 @@ def check_bndboxes(json_data):
     #width  = int(json_data.get("image_width"))
     #height = int(json_data.get("image_height"))
     for obj in json_data.get("bndboxes"):
+        box =obj
+        #if type(box["w"]) is str:
+        box["w"]=float(box["w"])
+        #if type(box["h"]) is str:
+        box["h"]=float(box["h"])
+        #if type(box["x"]) is str:
+        box["x"]=float(box["x"])
+        #if type(box["y"]) is str:
+        box["y"]=float(box["y"])
+
         xma=float((obj.get("x")+obj.get("w")) / width)
         yma=float((obj.get("y")+obj.get("h")) / height)
         if xma>1.01 or yma >1.01:
@@ -244,7 +254,7 @@ def to_tfrecord():
         json_data=json.loads(json_str)
         empty=len(json_data.get("bndboxes"))==0
 
-        if FLAGS.ignore_empty_images and empty:
+        if FLAGS.ignore_empty_images==True and empty==True:
             continue
         check_bndboxes(json_data)
         tf_example = json_to_tf_example(json_data, FLAGS.data_dir, label_map_dict )

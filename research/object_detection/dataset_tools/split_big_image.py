@@ -18,18 +18,18 @@ flags.DEFINE_string('src_dir',
                     "/home/keyong/Downloads/18001000W_1102",
                     """the source folder which contains image and annotatoin should have structure 
 .
-└── photos
+└── Photos
       └── Annotations""")
 flags.DEFINE_string('to_dir',
                     "/home/keyong/Downloads/splited_data",
                     'the destination folder to store splitted pictures and annotations')
-# flags.DEFINE_string('train',False, 'Convert training set, validation set or '
-#                    'merged set.')
+flags.DEFINE_boolean('split',True, 'split a dataset(for small object) or simply scale big image at ratio 0.25'
+                    'merged set.')
 
 FLAGS = flags.FLAGS
 
 
-# {"version":"1.0.0","company":"18001000W","dataset":"photos",
+# {"version":"1.0.0","company":"18001000W","dataset":"Photos",
 #  "filename":"1002_3428_IMG_5944.JPG",
 #  "image_width":3024,"image_height":4032,
 #  "bndboxes":[
@@ -123,9 +123,9 @@ def crop_image(x, y, w, h, row, col, scaled_img, to_dir, short_name, json_data):
     with open(os.path.join(to_dir, "photos", "Annotations", cropped_image_name + ".json"),'w') as fp:
         header = '{"version":"1.0.0","company":"idontknow","dataset":"photos","filename":"'
         header +=  cropped_image_name + '",' + """
-  "image_width":500,"image_height":500,
+  "image_width":%d,"image_height":%d,
   "bndboxes":
- """
+ """%(w,h)
         footer = "}"
         fp.write(header)
         bbs = json.dumps(avai_bbs)
@@ -133,28 +133,14 @@ def crop_image(x, y, w, h, row, col, scaled_img, to_dir, short_name, json_data):
         fp.write(footer)
 
 
-
-
-def split_one_image(json_data, img_path, to_dir, short_name):
+def scale_one_image(json_data, img_path, to_dir, short_name):
     bndboxes = json_data.get("bndboxes")
-    min_w = min(bndboxes, key=lambda bbox: bbox.get("w")).get("w")
-    min_h = min(bndboxes, key=lambda bbox: bbox.get("h")).get("h")
-
-    if min_w < 45:
-        error_str = "Wrong bounding box in " + img_path + ", the width of bbox is " + str(
-            min_w) + ", should be bigger than 45"
-        print(error_str)
-        raise ValueError(error_str)
-
-    scale = 45.0 / min_w
-    if scale>1.0:
-        scale=1.0
-
+    scale=0.5
     with tf.gfile.GFile(img_path, 'rb') as fid:
         encoded_jpg = fid.read()
-    encoded_jpg_io = io.BytesIO(encoded_jpg)
-    with PIL.Image.open(encoded_jpg_io) as image:
-        width, height = image.size
+        encoded_jpg_io = io.BytesIO(encoded_jpg)
+        with PIL.Image.open(encoded_jpg_io) as image:
+            width, height = image.size
 
     new_width = int(width * scale)
     new_height = int(height * scale)
@@ -166,6 +152,77 @@ def split_one_image(json_data, img_path, to_dir, short_name):
 
     if new_height< 500 :
         scale = 500.0/height
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+
+    for box in bndboxes:
+        box["x"]=box["x"]*scale
+        box["y"]=box["y"]*scale
+        box["w"]=box["w"]*scale
+        box["h"]=box["h"]*scale
+
+    orig_full_path = img_path
+    # short_name is the file name like "abc.JPG"
+    bgr=False
+
+    temp_img_rgb = os.path.join(to_dir, "photos",  short_name+"rgb.jpg")
+    temp_img = os.path.join(to_dir, "photos",  short_name)
+
+    #slice_img = os.path.join(to_dir, "Photos", short_name[0:-4])
+    if not os.path.exists(temp_img):
+        if bgr:
+            os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img_rgb+"'")
+            #to_bgr:convert 1.jpg  -separate +channel -swap 0,2  -combine 1_bgr.jpg
+            os.system("convert '" + temp_img_rgb + "' -separate +channel -swap 0,2 -combine '" + temp_img+"'")
+        else:
+            os.system("convert '" + orig_full_path + "' -resize " + str(new_width) + "x" + str(new_height) + " '" + temp_img+"'")
+
+    with open(os.path.join(to_dir, "photos", "Annotations", short_name + ".json"),'w') as fp:
+        header = '{"version":"1.0.0","company":"idontknow","dataset":"photos","filename":"'
+        header +=  short_name + '",' + """
+  "image_width":500,"image_height":500,
+  "bndboxes":
+ """
+        footer = "}"
+        fp.write(header)
+        bbs = json.dumps(bndboxes)
+        fp.write(bbs)
+        fp.write(footer)
+
+def split_one_image(json_data, img_path, to_dir, short_name):
+    bndboxes = json_data.get("bndboxes")
+    min_w = min(bndboxes, key=lambda bbox: bbox.get("w")).get("w")
+    min_h = min(bndboxes, key=lambda bbox: bbox.get("h")).get("h")
+
+    if min_w < 45:
+        error_str = "Wrong bounding box in " + img_path + ", the width of bbox is " + str(
+            min_w) + ", should be bigger than 45"
+        print(error_str)
+        raise ValueError(error_str)
+    try:
+        scale = 60.0 / min_w
+    except:
+        print("type(min_w)="+str(type(min_w) )+", min_w="+min_w)
+    if scale>1.0:
+        scale=1.0
+    print("scale level is %f" %(scale))
+    tile_size=600
+    with tf.gfile.GFile(img_path, 'rb') as fid:
+        encoded_jpg = fid.read()
+    encoded_jpg_io = io.BytesIO(encoded_jpg)
+    with PIL.Image.open(encoded_jpg_io) as image:
+        width, height = image.size
+
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+
+    if new_width < tile_size :
+        scale = tile_size*1.0/width
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+
+    if new_height< tile_size :
+        scale = tile_size*1.0/height
         new_width = int(width * scale)
         new_height = int(height * scale)
 
@@ -195,31 +252,31 @@ def split_one_image(json_data, img_path, to_dir, short_name):
     y = 0
     row = 0
 
-    while y + 500 < new_height:
+    while y + tile_size < new_height:
         col = 0
         x = 0
         #new_tile_height = get_recommended_tile_heigh(x,y, bndboxes)
-        while x + 500 < new_width:
-            crop_image(x, y, 500, 500, row, col, temp_img, to_dir, short_name, json_data)
-            x += 500
+        while x + tile_size < new_width:
+            crop_image(x, y, tile_size, tile_size, row, col, temp_img, to_dir, short_name, json_data)
+            x += tile_size/2
             col += 1
 
         if x != new_width:
-            crop_image(new_width - 500, y, 500, 500, row, col, temp_img, to_dir, short_name, json_data)
+            crop_image(new_width - tile_size, y, tile_size, tile_size, row, col, temp_img, to_dir, short_name, json_data)
         row += 1
-        y += 500
+        y += tile_size/2
 
     if y != new_height:
         col = 0
-        y = new_height - 500
+        y = new_height - tile_size
         x = 0
-        while x + 500 < new_width:
-            crop_image(x, y, 500, 500, row, col, temp_img, to_dir, short_name, json_data)
-            x += 500
+        while x + tile_size < new_width:
+            crop_image(x, y, tile_size, tile_size, row, col, temp_img, to_dir, short_name, json_data)
+            x += tile_size/2
             col += 1
 
         if x != new_width:
-            crop_image(new_width - 500, y, 500, 500, row, col, temp_img, to_dir, short_name, json_data)
+            crop_image(new_width - tile_size, y, tile_size, tile_size, row, col, temp_img, to_dir, short_name, json_data)
 
     pass
 
@@ -233,18 +290,23 @@ def mkdir_p(path):
 
 
 def main(_):
+    #print("split flag = "+str(FLAGS.split))
+    #return
     mkdir_p(os.path.join(FLAGS.to_dir, "photos", "Annotations"))
     mkdir_p(os.path.join(FLAGS.to_dir, "photos", "tmp"))
     src_dir = FLAGS.src_dir
+    #print("FLGS.split="+FLAGS.split)
     annotations_dir = os.path.join(src_dir, "photos", "Annotations")
     photos_dir = os.path.join(src_dir, "photos")
     examples_list = [f for f in os.listdir(annotations_dir)
-                     if f.find(".scaled.") == -1 and f.endswith(".json") and os.path.isfile(
+                     if f.find(".scaled.") == -1 and not f.startswith(".") and f.endswith(".json") and os.path.isfile(
             os.path.join(annotations_dir, f))
                      ]
+    print("split/scale flag is :%s\n" %( FLAGS.split ))
     for idx, example in enumerate(examples_list):
-        if idx % 100 == 0:
-            logging.info('On image %d of %d', idx, len(examples_list))
+        if (idx+1) % 100 == 0:
+            logging.info('On image %d of %d', idx+1, len(examples_list))
+            print('On image %d of %d' %( idx+1, len(examples_list)))
 
         # path = os.path.join(annotations_dir, example + '.json')
         short_name = example[0:-5]
@@ -252,27 +314,46 @@ def main(_):
         img_path = os.path.join(photos_dir, short_name)
         with tf.gfile.GFile(path, 'r') as fid:
             json_str = fid.read()
-        json_data = json.loads(json_str)
-
+        #print("loading json file:%s\n" %(img_path))
+        try:
+            json_data = json.loads(json_str)
+        except:
+            print("loading json file:%s\n" %(img_path))
+        #if idx < 2700:
+        #    continue
         bndboxes = json_data.get("bndboxes")
         bndboxes=[box for box in bndboxes if box.get("w")>=45 ]
-        bndboxes=[box for box in bndboxes if box.get("id") !="unknown" ]
+        #bndboxes=[box for box in bndboxes if box.get("id") !="160611" and box.get("id") !="170326" ]
         #ooo=[box for box in bndboxes if box.get("id") in ["Amber","Silver","Blue","Green"] ]
-        #for box in ooo:
-        #    box["id"]="Amber"
+        for box in bndboxes:
+            #if type(box["w"]) is str:
+            box["w"]=float(box["w"])
+            #if type(box["h"]) is str:
+            box["h"]=float(box["h"])
+            #if type(box["x"]) is str:
+            box["x"]=float(box["x"])
+            #if type(box["y"]) is str:
+            box["y"]=float(box["y"])
 
         json_data["bndboxes"]=bndboxes
-        if len(bndboxes) <= 0:
-            continue
+        #if len(bndboxes) <= 0:
+        #    continue
         #bndboxes = json_data.get("bndboxes")
         #for box in bndboxes:
         #    assert box["id"] not in ["Silver","Blue","Green","unknown"]
-        split_one_image(json_data, img_path, FLAGS.to_dir, short_name)
+        #print("FLAGS.split:%s\n" %(str(FLAGS.split)))
+        if FLAGS.split and len(bndboxes)>0:
+            #print("split")
+            split_one_image(json_data, img_path, FLAGS.to_dir, short_name)
+        else:
+            #print("scale")
+            scale_one_image(json_data, img_path, FLAGS.to_dir, short_name)
         #1002_3428_IMG_5944_2_1if short_name == 'IMG_1303.JPG':
         # if short_name in ['1002_3428_IMG_5944.JPG',"1002_3428_IMG_5945.JPG"]:
         #     print(short_name)
         #     split_one_image(json_data, img_path, FLAGS.to_dir, short_name)
         #     #break
+        #break
     pass
     #
 
