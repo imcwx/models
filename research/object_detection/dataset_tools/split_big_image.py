@@ -44,7 +44,7 @@ def bbox_in_area(bbox,x,y,w,h):
     by=bbox.get("y")
     bw=bbox.get("w")
     bh=bbox.get("h")
-    threshold=0.8
+    threshold=0.75
     rx,ry,rx2,ry2= (max(bx,x), max(by,y), min(bx+bw,x+w) ,min(by+bh,y+h))
     if rx2<=rx or ry2<=ry:
         return None
@@ -135,7 +135,7 @@ def crop_image(x, y, w, h, row, col, scaled_img, to_dir, short_name, json_data):
 
 def scale_one_image(json_data, img_path, to_dir, short_name):
     bndboxes = json_data.get("bndboxes")
-    scale=0.5
+    scale=0.25
     with tf.gfile.GFile(img_path, 'rb') as fid:
         encoded_jpg = fid.read()
         encoded_jpg_io = io.BytesIO(encoded_jpg)
@@ -258,13 +258,13 @@ def split_one_image(json_data, img_path, to_dir, short_name):
         #new_tile_height = get_recommended_tile_heigh(x,y, bndboxes)
         while x + tile_size < new_width:
             crop_image(x, y, tile_size, tile_size, row, col, temp_img, to_dir, short_name, json_data)
-            x += tile_size/2
+            x += tile_size*2/3
             col += 1
 
         if x != new_width:
             crop_image(new_width - tile_size, y, tile_size, tile_size, row, col, temp_img, to_dir, short_name, json_data)
         row += 1
-        y += tile_size/2
+        y += tile_size*2/3
 
     if y != new_height:
         col = 0
@@ -272,7 +272,7 @@ def split_one_image(json_data, img_path, to_dir, short_name):
         x = 0
         while x + tile_size < new_width:
             crop_image(x, y, tile_size, tile_size, row, col, temp_img, to_dir, short_name, json_data)
-            x += tile_size/2
+            x += tile_size*2/3
             col += 1
 
         if x != new_width:

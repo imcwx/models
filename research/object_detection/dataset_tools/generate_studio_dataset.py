@@ -504,7 +504,7 @@ def generate_files(src_dir):
     image_count=0
     running_threads=[]
     #ratios=numpy.linspace(0.10,200.0/num_cols,20)
-    ratios=numpy.linspace(90.0/num_cols,200.0/num_cols,4)
+    ratios=numpy.linspace(100.0/num_cols,200.0/num_cols,5)
 
     start =  time.time()
     # scale the sku files
@@ -585,12 +585,14 @@ def generate_files(src_dir):
             idx+=1
 
     start_count=0
+    print("generating background image from %s" % (pure_bg_dir))
     #bg_imgs=[]
     for bg_file in [f for f in os.listdir(pure_bg_dir) if os.path.isfile(os.path.join(pure_bg_dir,f))]:
         #bg_img=scipy.ndimage.imread(os.path.join (bg_dir, bg_file))
         #if bg_img.shape[0] <= num_rows and bg_img.shape[1] <= num_cols:
         generate_empty_annotation(pure_bg_dir,bg_file,photos_dir,bg_file,annotations_dir)
-
+    print("generating fake image based on %s" % (bg_dir))
+    #bg_imgs=[]
     for bg_file in [f for f in os.listdir(bg_dir) if os.path.isfile(os.path.join(bg_dir,f))]:
         bg_img=scipy.ndimage.imread(os.path.join (bg_dir, bg_file))
         if bg_img.shape[0] <= num_rows and bg_img.shape[1] <= num_cols:
@@ -608,7 +610,7 @@ def generate_files(src_dir):
         if len(running_threads) >=10:
             for t in running_threads:
                 t.join()
-            print("20 background images has been used" )
+            print("10 background images has been taken!" )
             running_threads=[]
         #break
 

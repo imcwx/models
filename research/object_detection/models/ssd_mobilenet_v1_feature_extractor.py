@@ -88,9 +88,9 @@ class SSDMobileNetV1FeatureExtractor(ssd_meta_arch.SSDFeatureExtractor):
         ['image size must at least be 33 in both height and width.'])
 
     feature_map_layout = {
-        'from_layer': ['Conv2d_11_pointwise', 'Conv2d_13_pointwise', '', '',
-                       '', ''],
-        'layer_depth': [-1, -1, 512, 256, 256, 128],
+        'from_layer': ['Conv2d_11_pointwise', 'Conv2d_13_pointwise', '',  '',  '',  ''],
+        'layer_depth': [-1,                    -1,                   512, 256, 256, 128],
+        #'use_depthwise':True
     }
 
     with tf.control_dependencies([shape_assert]):

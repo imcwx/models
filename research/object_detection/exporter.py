@@ -69,7 +69,9 @@ def freeze_graph_with_def_protos(
     if optimize_graph:
       logging.info('Graph Rewriter optimizations enabled')
       rewrite_options = rewriter_config_pb2.RewriterConfig(
-          optimize_tensor_layout=True)
+            layout_optimizer=True)
+      #optimize_tensor_layout=True)
+      #rewrite_options = rewriter_config_pb2.RewriterConfig()
       rewrite_options.optimizers.append('pruning')
       rewrite_options.optimizers.append('constfold')
       rewrite_options.optimizers.append('layout')
@@ -331,6 +333,7 @@ def _export_inference_graph(input_type,
                             optimize_graph=True,
                             output_collection_name='inference_op'):
   """Export helper."""
+  print ("makedirs "+ output_directory)
   tf.gfile.MakeDirs(output_directory)
   frozen_graph_path = os.path.join(output_directory,
                                    'frozen_inference_graph.pb')

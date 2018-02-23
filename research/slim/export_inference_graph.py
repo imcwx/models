@@ -106,6 +106,8 @@ def main(_):
   with tf.Graph().as_default() as graph:
     dataset = dataset_factory.get_dataset(FLAGS.dataset_name, 'train',
                                           FLAGS.dataset_dir)
+
+    print("dataset.num_classes=%d"%dataset.num_classes)
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
