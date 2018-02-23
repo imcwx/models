@@ -36,8 +36,7 @@ TRAIN_DIR=~/dataset/ukraine/train_dir/mobilenetv1
 DATASET_DIR=~/dataset/ukraine
 
 
-# Download the dataset
-python convert_classification_data.py \
+python classification_folder_to_tf.py \
   --np_dir=/home/keyong/Downloads/anno/public/working/PMI_SET2_del_Blurred \
   --tf_dir=${DATASET_DIR}
 
