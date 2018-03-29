@@ -32,6 +32,7 @@ message PreprocessingStep {
     SSDRandomCropPadFixedAspectRatio ssd_random_crop_pad_fixed_aspect_ratio = 24;
     RandomVerticalFlip random_vertical_flip = 25;
     RandomRotation90 random_rotation90 = 26;
+    RandomPadToAspectRatio random_pad_to_aspect_ratio = 27;
   }
 }
 
@@ -402,4 +403,9 @@ message SSDRandomCropPadFixedAspectRatio {
 
   // Aspect ratio to pad to. This value is used for all crop and pad operations.
   optional float aspect_ratio = 2 [default=1.0];
+}
+// Randomly pad an iamge to a given aspect ratio.
+message RandomPadToAspectRatio {
+  // Aspect ratio.
+  optional float aspect_ratio = 1 [default=1.0];
 }
