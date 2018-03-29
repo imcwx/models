@@ -82,6 +82,7 @@ PREPROCESSING_FUNCTION_MAP = {
     'random_distort_color': preprocessor.random_distort_color,
     'random_jitter_boxes': preprocessor.random_jitter_boxes,
     'random_crop_to_aspect_ratio': preprocessor.random_crop_to_aspect_ratio,
+    'random_pad_to_aspect_ratio': preprocessor.random_pad_to_aspect_ratio,
     'random_black_patches': preprocessor.random_black_patches,
     'scale_boxes_to_pixel_coordinates': (
         preprocessor.scale_boxes_to_pixel_coordinates),
