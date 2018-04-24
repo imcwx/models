@@ -44,6 +44,7 @@ back to rank 4.
 
 import sys
 import tensorflow as tf
+import numpy as np
 
 from tensorflow.python.ops import control_flow_ops
 
@@ -915,13 +916,63 @@ def _strict_random_crop_image(image,
         boxlist, im_box_rank1)
 
     # remove boxes that are outside image
-    overlapping_boxlist, keep_ids = box_list_ops.prune_non_overlapping_boxes(
+    # overlapping_boxlist, keep_ids = box_list_ops.prune_non_overlapping_boxes(
+    #     boxlist, im_boxlist, overlap_thresh)
+
+    # remove boxes that are outside image AND GET BLACKBOXLIST
+    overlapping_boxlist, keep_ids, black_boxlist = box_list_ops.prune_non_overlapping_boxes_custom(
         boxlist, im_boxlist, overlap_thresh)
 
     # change the coordinate of the remaining boxes
     new_labels = overlapping_boxlist.get_field('labels')
     new_boxlist = box_list_ops.change_coordinate_frame(overlapping_boxlist,
                                                        im_box_rank1)
+    ####################################################################
+
+    # Change coordinate of boxes to be blacked
+    black_boxlist = box_list_ops.change_coordinate_frame(black_boxlist,
+                                                     		 im_box_rank1)
+
+    def _applyblackbox(new_image, boxlist):
+      boxlist = boxlist.get()
+
+      byPass = True
+      if not byPass:
+        # y_min, x_min, y_max, x_max = tf.split(
+        #     value=boxlist.get(), num_or_size_splits=4, axis=1)
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + str(new_image.shape))
+        black_mask = np.ones(new_image.shape)
+
+        boxlist_shape = boxlist.shape
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + str(boxlist_shape))
+
+        print(boxlist.eval(session = tf.Session()))
+        test = tf.gather_nd(boxlist, [0])
+        print(test.eval(session = tf.Session()))
+
+        # black_mask = black_mask.eval()
+        # Use boxlist to make mask to 0
+        # Something like:
+        # for box in boxlist:
+        #     y_min, x_min, y_max, x_max = box.get()
+        #     black_mask[:, y_min:y_max, x_min:x_max, :] = 0
+
+        final_image = tf.multiply(new_image, black_mask)
+
+        return final_image
+      return new_image
+
+    # Apply blackbox to new image
+    # cond = tf.equal(tf.reduce_sum(black_boxlist.get()), 0)
+    # new_image = tf.cond(cond, 
+    #             lambda: _applyblackbox(new_image, black_boxlist),
+    #             lambda: new_image)
+
+    # if tf.equal(tf.reduce_sum(black_boxlist), 0):
+    # 	new_image = _applyblackbox(new_image, black_boxlist)
+
+
+    #####################################################################
     new_boxes = new_boxlist.get()
     new_boxes = tf.clip_by_value(
         new_boxes, clip_value_min=0.0, clip_value_max=1.0)
@@ -963,11 +1014,13 @@ def random_crop_image(image,
                       masks=None,
                       keypoints=None,
                       min_object_covered=1.0,
-                      aspect_ratio_range=(0.75, 1.33),
-                      area_range=(0.1, 1.0),
+                      aspect_ratio_range=(0.60, 0.90),
+                      area_range=(0.5, 1.0),
                       overlap_thresh=0.3,
                       random_coef=0.0,
                       seed=None):
+  # aspect_ratio_range=(0.75, 1.33),
+  # area_range=(0.1, 1.0),
   """Randomly crops the image.
 
   Given the input image and its bounding boxes, this op randomly
@@ -1175,8 +1228,8 @@ def random_crop_pad_image(image,
                           boxes,
                           labels,
                           label_scores=None,
-                          min_object_covered=1.0,
-                          aspect_ratio_range=(0.75, 1.33),
+                          min_object_covered=0.4,
+                          aspect_ratio_range=(0.60, 0.90),
                           area_range=(0.1, 1.0),
                           overlap_thresh=0.3,
                           random_coef=0.0,
@@ -1184,6 +1237,14 @@ def random_crop_pad_image(image,
                           max_padded_size_ratio=(2.0, 2.0),
                           pad_color=None,
                           seed=None):
+  # orig
+  # min_object_covered=1.0,
+  # aspect_ratio_range=(0.75, 1.33),
+  # area_range=(0.1, 1.0),
+  # max_padded_size_ratio=(2.0, 2.0),
+
+  # pmi_ukraine
+  # spect_ratio_range=(0.60, 0.90),
   """Randomly crops and pads the image.
 
   Given an input image and its bounding boxes, this op first randomly crops
@@ -1233,43 +1294,105 @@ def random_crop_pad_image(image,
     if label_scores is not None also returns:
     cropped_label_scores: cropped label scores.
   """
+  # np.random.seed(123)  # crop and pad
+  # np.random.seed(1234)  # crop
+  # np.random.seed(12345) # none, orig 
+  # np.random.seed(1) # pad
+
+  rand = np.random.random_sample()
+
+  crop, pad = False, False
+  if rand < 0.3:
+  	crop = True
+  elif rand < 0.6:
+  	pad = True
+  elif rand < 0.9:
+  	crop = True
+  	pad = True
+  # else:
+  # 	# return orig
+  # 	pass
+  # print("The random number generated is: " + str(rand))
+  # print("It will crop: " + str(crop))
+  # print("It will pad: " + str(pad))
+
   image_size = tf.shape(image)
   image_height = image_size[0]
   image_width = image_size[1]
-  result = random_crop_image(
-      image=image,
-      boxes=boxes,
-      labels=labels,
-      label_scores=label_scores,
-      min_object_covered=min_object_covered,
-      aspect_ratio_range=aspect_ratio_range,
-      area_range=area_range,
-      overlap_thresh=overlap_thresh,
-      random_coef=random_coef,
-      seed=seed)
 
-  cropped_image, cropped_boxes, cropped_labels = result[:3]
+  if crop and pad:
+	  result = random_crop_image(
+	      image=image,
+	      boxes=boxes,
+	      labels=labels,
+	      label_scores=label_scores,
+	      min_object_covered=min_object_covered,
+	      aspect_ratio_range=aspect_ratio_range,
+	      area_range=area_range,
+	      overlap_thresh=overlap_thresh,
+	      random_coef=random_coef,
+	      seed=seed)
+	  cropped_image, cropped_boxes, cropped_labels = result[:3]
 
-  min_image_size = tf.to_int32(
-      tf.to_float(tf.stack([image_height, image_width])) *
-      min_padded_size_ratio)
-  max_image_size = tf.to_int32(
-      tf.to_float(tf.stack([image_height, image_width])) *
-      max_padded_size_ratio)
+	  min_image_size = tf.to_int32(
+	      tf.to_float(tf.stack([image_height, image_width])) *
+	      min_padded_size_ratio)
+	  max_image_size = tf.to_int32(
+	      tf.to_float(tf.stack([image_height, image_width])) *
+	      max_padded_size_ratio)
+	  padded_image, padded_boxes = random_pad_image(
+	      cropped_image,
+	      cropped_boxes,
+	      min_image_size=min_image_size,
+	      max_image_size=max_image_size,
+	      pad_color=pad_color,
+	      seed=seed)
 
-  padded_image, padded_boxes = random_pad_image(
-      cropped_image,
-      cropped_boxes,
-      min_image_size=min_image_size,
-      max_image_size=max_image_size,
-      pad_color=pad_color,
-      seed=seed)
+	  cropped_padded_output = (padded_image, padded_boxes, cropped_labels)
 
-  cropped_padded_output = (padded_image, padded_boxes, cropped_labels)
+	  if label_scores is not None:
+	    cropped_label_scores = result[3]
+	    cropped_padded_output += (cropped_label_scores,)
 
-  if label_scores is not None:
-    cropped_label_scores = result[3]
-    cropped_padded_output += (cropped_label_scores,)
+  elif crop: 
+	  result = random_crop_image(
+	      image=image,
+	      boxes=boxes,
+	      labels=labels,
+	      label_scores=label_scores,
+	      min_object_covered=min_object_covered,
+	      aspect_ratio_range=aspect_ratio_range,
+	      area_range=area_range,
+	      overlap_thresh=overlap_thresh,
+	      random_coef=random_coef,
+	      seed=seed)
+	  cropped_image, cropped_boxes, cropped_labels = result[:3]
+
+	  cropped_padded_output = (cropped_image, cropped_boxes, cropped_labels)
+	  if label_scores is not None:
+	    cropped_label_scores = result[3]
+	    cropped_padded_output += (cropped_label_scores,)
+
+  elif pad:
+	  min_image_size = tf.to_int32(
+	      tf.to_float(tf.stack([image_height, image_width])) *
+	      min_padded_size_ratio)
+	  max_image_size = tf.to_int32(
+	      tf.to_float(tf.stack([image_height, image_width])) *
+	      max_padded_size_ratio)
+	  padded_image, padded_boxes = random_pad_image(
+	      image,
+	      boxes,
+	      min_image_size=min_image_size,
+	      max_image_size=max_image_size,
+	      pad_color=pad_color,
+	      seed=seed)
+
+	  cropped_padded_output = (padded_image, padded_boxes, labels)
+	  if label_scores is not None:
+	    cropped_padded_output += (label_scores,)
+  else:
+	cropped_padded_output = (image, boxes, labels)
 
   return cropped_padded_output
 
@@ -1420,6 +1543,8 @@ def random_pad_to_aspect_ratio(image,
                                min_padded_size_ratio=(1.0, 1.0),
                                max_padded_size_ratio=(2.0, 2.0),
                                seed=None):
+  # aspect_ratio=1.0,
+  # aspect_ratio=800.0/1080.0,
   """Randomly zero pads an image to the specified aspect ratio.
 
   Pads the image so that the resulting image will have the specified aspect

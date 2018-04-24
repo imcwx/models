@@ -69,7 +69,8 @@ def freeze_graph_with_def_protos(
     if optimize_graph:
       logging.info('Graph Rewriter optimizations enabled')
       rewrite_options = rewriter_config_pb2.RewriterConfig(
-            layout_optimizer=True)
+            optimize_tensor_layout=True)
+            # layout_optimizer=True)
       #optimize_tensor_layout=True)
       #rewrite_options = rewriter_config_pb2.RewriterConfig()
       rewrite_options.optimizers.append('pruning')

@@ -251,7 +251,14 @@ def to_tfrecord():
         path = os.path.join(annotations_dir, example)
         with tf.gfile.GFile(path, 'r') as fid:
             json_str = fid.read()
-        json_data=json.loads(json_str)
+
+        try:
+            json_data=json.loads(json_str)
+        except Exception as e:
+            print("cant load json file %s" %(path))           
+            raise e 
+            
+
         empty=len(json_data.get("bndboxes"))==0
 
         if FLAGS.ignore_empty_images==True and empty==True:
