@@ -932,44 +932,8 @@ def _strict_random_crop_image(image,
     # Change coordinate of boxes to be blacked
     black_boxlist = box_list_ops.change_coordinate_frame(black_boxlist,
                                                      		 im_box_rank1)
-
-    def _applyblackbox(new_image, boxlist):
-      boxlist = boxlist.get()
-
-      byPass = True
-      if not byPass:
-        # y_min, x_min, y_max, x_max = tf.split(
-        #     value=boxlist.get(), num_or_size_splits=4, axis=1)
-        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + str(new_image.shape))
-        black_mask = np.ones(new_image.shape)
-
-        boxlist_shape = boxlist.shape
-        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + str(boxlist_shape))
-
-        print(boxlist.eval(session = tf.Session()))
-        test = tf.gather_nd(boxlist, [0])
-        print(test.eval(session = tf.Session()))
-
-        # black_mask = black_mask.eval()
-        # Use boxlist to make mask to 0
-        # Something like:
-        # for box in boxlist:
-        #     y_min, x_min, y_max, x_max = box.get()
-        #     black_mask[:, y_min:y_max, x_min:x_max, :] = 0
-
-        final_image = tf.multiply(new_image, black_mask)
-
-        return final_image
-      return new_image
-
-    # Apply blackbox to new image
-    # cond = tf.equal(tf.reduce_sum(black_boxlist.get()), 0)
-    # new_image = tf.cond(cond, 
-    #             lambda: _applyblackbox(new_image, black_boxlist),
-    #             lambda: new_image)
-
-    # if tf.equal(tf.reduce_sum(black_boxlist), 0):
-    # 	new_image = _applyblackbox(new_image, black_boxlist)
+    blackbox = black_boxlist.get()
+    image = tf.image.draw_bounding_boxes(image, blackbox, fill=True)
 
 
     #####################################################################
@@ -1301,6 +1265,8 @@ def random_crop_pad_image(image,
 
   rand = np.random.random_sample()
 
+  rand = 0.95
+
   crop, pad = False, False
   if rand < 0.3:
   	crop = True
@@ -1392,7 +1358,12 @@ def random_crop_pad_image(image,
 	  if label_scores is not None:
 	    cropped_padded_output += (label_scores,)
   else:
-	cropped_padded_output = (image, boxes, labels)
+    # image = tf.expand_dims(image, 0)
+    # boxes = tf.expand_dims(boxes, 0)
+    # image = tf.image.draw_bounding_boxes(image, boxes, fill=True)
+    # image = tf.squeeze(image)
+    # boxes = tf.squeeze(boxes)
+    cropped_padded_output = (image, boxes, labels)
 
   return cropped_padded_output
 

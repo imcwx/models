@@ -128,7 +128,7 @@ class PreprocessorTest(tf.test.TestCase):
     images = tf.image.convert_image_dtype(images, dtype=tf.float32)
 
     boxes = tf.constant(
-        [[0.20, 0.25, 0.75, 0.80], [0.25, 0.30, 0.75, 0.60]], dtype=tf.float32)
+        [[0.20, 0.25, 0.75, 0.80], [0.25, 0.30, 0.85, 0.60]], dtype=tf.float32)
     labels = self.createTestLabels()
 
     tensor_dict = {
@@ -140,7 +140,7 @@ class PreprocessorTest(tf.test.TestCase):
     images = tensor_dict[fields.InputDataFields.image]
 
 
-    preprocessing_options = [(preprocessor.random_crop_pad_image, {
+    preprocessing_options = [(preprocessor.random_crop_image, {
 
       })]
 
