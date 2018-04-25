@@ -933,7 +933,11 @@ def _strict_random_crop_image(image,
     black_boxlist = box_list_ops.change_coordinate_frame(black_boxlist,
                                                      		 im_box_rank1)
     blackbox = black_boxlist.get()
-    image = tf.image.draw_bounding_boxes(image, blackbox, fill=True)
+    new_image = tf.expand_dims(new_image, 0)
+    blackbox = tf.expand_dims(blackbox, 0)
+    new_image = tf.image.draw_bounding_boxes(new_image, blackbox, fill=True)
+    new_image = tf.squeeze(new_image)
+    blackbox = tf.squeeze(blackbox)
 
 
     #####################################################################
@@ -977,14 +981,19 @@ def random_crop_image(image,
                       label_scores=None,
                       masks=None,
                       keypoints=None,
-                      min_object_covered=1.0,
+                      min_object_covered=0.5,
                       aspect_ratio_range=(0.60, 0.90),
-                      area_range=(0.5, 1.0),
+                      area_range=(0.3, 0.8),
                       overlap_thresh=0.3,
                       random_coef=0.0,
                       seed=None):
+  # min_object_covered=1.0,
   # aspect_ratio_range=(0.75, 1.33),
   # area_range=(0.1, 1.0),
+
+  # for trng
+  # aspect_ratio_range=(0.60, 0.90),
+  #  area_range=(0.5, 1.0)
   """Randomly crops the image.
 
   Given the input image and its bounding boxes, this op randomly
@@ -1265,7 +1274,7 @@ def random_crop_pad_image(image,
 
   rand = np.random.random_sample()
 
-  rand = 0.95
+  # rand = 0.95
 
   crop, pad = False, False
   if rand < 0.3:

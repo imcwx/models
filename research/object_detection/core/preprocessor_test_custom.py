@@ -119,7 +119,7 @@ class PreprocessorTest(tf.test.TestCase):
     return boxes
 
 
-  def testRandomCropToAsepctRatio_custom(self):
+  def testRandomCropToAsepctRatio_custom(self, i=0):
     root_path = "/home/wenxiang/Documents/test/"
     image_file_path = root_path + "1.jpg"
     reader = tf.read_file(image_file_path)
@@ -128,8 +128,14 @@ class PreprocessorTest(tf.test.TestCase):
     images = tf.image.convert_image_dtype(images, dtype=tf.float32)
 
     boxes = tf.constant(
-        [[0.20, 0.25, 0.75, 0.80], [0.25, 0.30, 0.85, 0.60]], dtype=tf.float32)
-    labels = self.createTestLabels()
+        [[0.00, 0.00, 0.20, 0.20], [0.00, 0.80, 0.20, 1.00], 
+         [0.80, 0.00, 1.00, 0.20], [0.80, 0.80, 1.00, 1.00],
+         [0.40, 0.40, 0.60, 0.60]], dtype=tf.float32)
+    # labels = self.createTestLabels()
+    labels = tf.constant([1, 2, 2 ,3, 4], dtype=tf.int32)
+
+    # TO DO 
+    # Test random_crop (with blackout) Seperate test case?
 
     tensor_dict = {
         fields.InputDataFields.image: images,
@@ -153,15 +159,21 @@ class PreprocessorTest(tf.test.TestCase):
       img = tf.image.convert_image_dtype(img, dtype=tf.uint8)
       img = tf.image.encode_jpeg(img, format='rgb', quality=100)
 
-      file_path = root_path + filename + "_new.jpg"
+      file_path = root_path + "result/" + filename + ".jpg"
       fwrite_op = tf.write_file(file_path, img)
       return fwrite_op
 
-    write_op1 = _write_jpeg("test_1", images)
-    write_op2 = _write_jpeg("test_2", cropped_images)
-    run_op = [write_op1, write_op2]
+    run_op = []
+    write_op = _write_jpeg("test_"+str(i), cropped_images)
+    run_op.append(write_op)
     with self.test_session() as sess:
       sess.run(run_op)
+
+  # def loop_test_custom(self):
+  #   for i in range(10):
+  #     tf.set_random_seed(np.random.random_sample()*1000)
+  #     _ = self.testRandomCropToAsepctRatio_custom(i)
+  #   pass
 
 if __name__ == '__main__':
   tf.test.main()
