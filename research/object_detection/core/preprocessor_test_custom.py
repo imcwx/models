@@ -119,20 +119,18 @@ class PreprocessorTest(tf.test.TestCase):
     return boxes
 
 
-  def testRandomCropToAspectRatio_custom(self):
-    image_file_path = "/home/wenxiang/Documents/test/1.jpg"
+  def testRandomCropToAsepctRatio_custom(self):
+    root_path = "/home/wenxiang/Documents/test/"
+    image_file_path = root_path + "1.jpg"
     reader = tf.read_file(image_file_path)
     images = tf.image.decode_jpeg(reader)
     images = tf.expand_dims(images, 0)
-
     images = tf.image.convert_image_dtype(images, dtype=tf.float32)
 
     boxes = tf.constant(
-        [[0.20, 0.25, 0.75, 0.8], [0.25, 0.3, 0.75, 0.6]], dtype=tf.float32)
-
-    # images = self.createTestImages()
-    # boxes = self.createTestBoxes()
+        [[0.20, 0.25, 0.75, 0.80], [0.25, 0.30, 0.75, 0.60]], dtype=tf.float32)
     labels = self.createTestLabels()
+
     tensor_dict = {
         fields.InputDataFields.image: images,
         fields.InputDataFields.groundtruth_boxes: boxes,
@@ -141,30 +139,26 @@ class PreprocessorTest(tf.test.TestCase):
     tensor_dict = preprocessor.preprocess(tensor_dict, [])
     images = tensor_dict[fields.InputDataFields.image]
 
-    # tf.set_random_seed(123)  
-  
+
     preprocessing_options = [(preprocessor.random_crop_pad_image, {
-      # "max_delta":0.05,
-      # 'aspect_ratio': 2.0
-    })]
+
+      })]
+
     cropped_tensor_dict = preprocessor.preprocess(tensor_dict, preprocessing_options)
-  
+
     cropped_images = cropped_tensor_dict[fields.InputDataFields.image]
-    # cropped_boxes = cropped_tensor_dict[fields.InputDataFields.groundtruth_boxes]
-  
-    def write_jpg(filename, img):
+
+    def _write_jpeg(filename, img):
       img = tf.squeeze(img)
-
       img = tf.image.convert_image_dtype(img, dtype=tf.uint8)
-
       img = tf.image.encode_jpeg(img, format='rgb', quality=100)
-      file_path = "/home/wenxiang/Documents/test/" + filename + "_new" + ".jpg"
-      # print("file written at " + file_path)
-      fwrite = tf.write_file(file_path, img)
-      return fwrite
 
-    write_op1 = write_jpg("test_1", images)
-    write_op2 = write_jpg("test_2", cropped_images)
+      file_path = root_path + filename + "_new.jpg"
+      fwrite_op = tf.write_file(file_path, img)
+      return fwrite_op
+
+    write_op1 = _write_jpeg("test_1", images)
+    write_op2 = _write_jpeg("test_2", cropped_images)
     run_op = [write_op1, write_op2]
     with self.test_session() as sess:
       sess.run(run_op)
