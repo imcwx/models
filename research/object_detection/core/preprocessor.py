@@ -983,7 +983,7 @@ def random_crop_image(image,
                       keypoints=None,
                       min_object_covered=0.5,
                       aspect_ratio_range=(0.60, 0.90),
-                      area_range=(0.3, 0.8),
+                      area_range=(0.3, 1.0),
                       overlap_thresh=0.3,
                       random_coef=0.0,
                       seed=None):
@@ -992,6 +992,7 @@ def random_crop_image(image,
   # area_range=(0.1, 1.0),
 
   # for trng
+  # min_object_covered=0.5,
   # aspect_ratio_range=(0.60, 0.90),
   #  area_range=(0.5, 1.0)
   """Randomly crops the image.
@@ -1217,7 +1218,8 @@ def random_crop_pad_image(image,
   # max_padded_size_ratio=(2.0, 2.0),
 
   # pmi_ukraine
-  # spect_ratio_range=(0.60, 0.90),
+  # min_object_covered=0.4,
+  # aspect_ratio_range=(0.60, 0.90),
   """Randomly crops and pads the image.
 
   Given an input image and its bounding boxes, this op first randomly crops
