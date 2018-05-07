@@ -7,7 +7,10 @@ ANNO=`realpath "$1"`
 mkdir -p "$2/data"
 mkdir -p "$2/models"
 LABEL_MAP=`realpath "$2/data/label_map.pbtxt"`
-TFRECORD=`realpath "$2/data/train.record"`
+# TFRECORD=`realpath "$2/data/train.record"`
+# TFRECORD=`realpath "$2/data/eval_new.record"`
+TFRECORD=`realpath "$2/data/train_flag_2_1200_1600.record"`
+
 pushd .
 cd ~/Documents/gits/models/research
 
