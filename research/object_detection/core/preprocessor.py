@@ -1173,15 +1173,15 @@ def random_pad_image(image,
       target_width=target_width)
 
   # Setting color of the padded pixels
-  image_ones = tf.ones_like(image)
-  image_ones_padded = tf.image.pad_to_bounding_box(
-      image_ones,
-      offset_height=offset_height,
-      offset_width=offset_width,
-      target_height=target_height,
-      target_width=target_width)
-  image_color_padded = (1.0 - image_ones_padded) * pad_color
-  new_image += image_color_padded
+  # image_ones = tf.ones_like(image)
+  # image_ones_padded = tf.image.pad_to_bounding_box(
+  #     image_ones,
+  #     offset_height=offset_height,
+  #     offset_width=offset_width,
+  #     target_height=target_height,
+  #     target_width=target_width)
+  # image_color_padded = (1.0 - image_ones_padded) * pad_color
+  # new_image += image_color_padded
 
   # setting boxes
   new_window = tf.to_float(
@@ -1202,13 +1202,13 @@ def random_crop_pad_image(image,
                           boxes,
                           labels,
                           label_scores=None,
-                          min_object_covered=0.4,
-                          aspect_ratio_range=(0.60, 0.90),
-                          area_range=(0.1, 1.0),
-                          overlap_thresh=0.3,
+                          min_object_covered=0.20,
+                          aspect_ratio_range=(9.0/16.0, 1.00),
+                          area_range=(0.1, 0.5),
+                          overlap_thresh=0.75,
                           random_coef=0.0,
                           min_padded_size_ratio=(1.0, 1.0),
-                          max_padded_size_ratio=(2.0, 2.0),
+                          max_padded_size_ratio=(1.5, 1.5),
                           pad_color=None,
                           seed=None):
   # orig
@@ -1216,6 +1216,7 @@ def random_crop_pad_image(image,
   # aspect_ratio_range=(0.75, 1.33),
   # area_range=(0.1, 1.0),
   # max_padded_size_ratio=(2.0, 2.0),
+  # overlap_thresh=0.3,
 
   # pmi_ukraine
   # min_object_covered=0.4,
@@ -1279,11 +1280,11 @@ def random_crop_pad_image(image,
   # rand = 0.95
 
   crop, pad = False, False
-  if rand < 0.3:
+  if rand < 0.4:
   	crop = True
-  elif rand < 0.6:
+  elif rand < 0.7:
   	pad = True
-  elif rand < 0.9:
+  else:  # rand < 1.0:
   	crop = True
   	pad = True
   # else:
