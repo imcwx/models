@@ -1202,9 +1202,9 @@ def random_crop_pad_image(image,
                           boxes,
                           labels,
                           label_scores=None,
-                          min_object_covered=0.20,
+                          min_object_covered=0,
                           aspect_ratio_range=(9.0/16.0, 1.00),
-                          area_range=(0.1, 0.5),
+                          area_range=(0.05, 0.4),
                           overlap_thresh=0.75,
                           random_coef=0.0,
                           min_padded_size_ratio=(1.0, 1.0),
@@ -1280,11 +1280,11 @@ def random_crop_pad_image(image,
   # rand = 0.95
 
   crop, pad = False, False
-  if rand < 0.4:
+  if rand < 0.70:
   	crop = True
-  elif rand < 0.7:
+  elif rand < 0.80:
   	pad = True
-  else:  # rand < 1.0:
+  else:  # rand < 0.90:
   	crop = True
   	pad = True
   # else:
