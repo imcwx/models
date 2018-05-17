@@ -1128,8 +1128,8 @@ def random_pad_image(image,
     boxes: boxes which is the same rank as input boxes. Boxes are in normalized
            form.
   """
-  if pad_color is None:
-    pad_color = tf.reduce_mean(image, axis=[0, 1])
+  # if pad_color is None:
+  #   pad_color = tf.reduce_mean(image, axis=[0, 1])
 
   image_shape = tf.shape(image)
   image_height = image_shape[0]
@@ -1202,13 +1202,13 @@ def random_crop_pad_image(image,
                           boxes,
                           labels,
                           label_scores=None,
-                          min_object_covered=0,
-                          aspect_ratio_range=(9.0/16.0, 1.00),
-                          area_range=(0.05, 0.4),
-                          overlap_thresh=0.75,
+                          min_object_covered=0.5,
+                          aspect_ratio_range=(0.75/1.1, 0.75*1.1),
+                          area_range=(0.2, 1.0),
+                          overlap_thresh=0.7,
                           random_coef=0.0,
                           min_padded_size_ratio=(1.0, 1.0),
-                          max_padded_size_ratio=(1.5, 1.5),
+                          max_padded_size_ratio=(1.75, 1.75),
                           pad_color=None,
                           seed=None):
   # orig
