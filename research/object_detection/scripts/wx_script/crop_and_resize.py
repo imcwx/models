@@ -19,8 +19,8 @@ parser.add_argument("--min_pixel", default=80*80, help="Minimum Pixel", type=int
 parser.add_argument("--to_resize_pad", default=False, help="To resize first than pad a boundary around the image", type=bool)
 parser.add_argument("--to_crop_resize_pad", default=True, help="To crop, resize first than pad a boundary around the image", type=bool)
 
-parser.add_argument("--target_h", default=int(800*1.5), type=int, help="target height")
-parser.add_argument("--target_w", default=int(600*1.5), type=int, help="target width")
+parser.add_argument("--target_h", default=int(800), type=int, help="target height")
+parser.add_argument("--target_w", default=int(600), type=int, help="target width")
 
 parser.add_argument("--input_folder", default="RB_Train_flag_2", type=str, help="put entire directory")
 parser.add_argument("--out_folder", help=None, type=str)
@@ -481,7 +481,7 @@ def overwrite_image_json(photo_file, json_path, info):
         cv2.destroyAllWindows()
 
     #  To overwrite image and json
-    WRITE = True
+    WRITE = False
     if WRITE:
         with open(json_path, "w") as json_file:
             json.dump(json_data, json_file, indent=4)
